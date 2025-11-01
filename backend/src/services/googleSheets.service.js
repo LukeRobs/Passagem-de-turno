@@ -620,11 +620,11 @@ async function buscarAbsenteismo() {
     const sheets = getGoogleSheetsClient();
     
     console.log('\n=== BUSCAR ABSENTEÍSMO ===');
-    console.log('📊 Origem: Célula AI36 da aba Operation Overview');
+    console.log('📊 Origem: Célula AI37 da aba Operation Overview');
     
     const SPREADSHEET_ID = '1dMTrj5Pl4fujD3xoRoVgCW3_xtAG1a-bdM6TKi1S_EU';
     const SHEET_NAME = 'Operation Overview';
-    const CELULA = 'AI36';
+    const CELULA = 'AI37';
     
     const range = `'${SHEET_NAME}'!${CELULA}`;
     
@@ -636,7 +636,7 @@ async function buscarAbsenteismo() {
     const valor = response.data.values?.[0]?.[0];
     
     if (!valor) {
-      console.log('⚠️ Célula AI36 está vazia');
+      console.log('⚠️ Célula AI37 está vazia');
       return {
         success: true,
         data: {
