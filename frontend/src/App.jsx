@@ -8,7 +8,7 @@ import Dashboard from './pages/Dashboard';
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/"> 
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route 

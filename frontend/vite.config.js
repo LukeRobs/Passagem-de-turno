@@ -3,5 +3,8 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/Passagem-de-turno'
+  base: '/', // ✅ Remover /Passagem-de-turno
+  server: {
+    port: 5173
+  }
 })

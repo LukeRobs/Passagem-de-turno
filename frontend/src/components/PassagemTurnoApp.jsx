@@ -3,7 +3,9 @@ import { Save, Send, Clock, Package, AlertTriangle, CheckCircle, TrendingUp, Mes
 
 import { useAuth } from '../contexts/AuthContext';
 
-const API_URL = 'http://localhost:5000/api/passagens';
+const API_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api/passagens`
+  : 'http://localhost:5000/api/passagens'
 
 export default function PassagemTurnoApp() {
   const { token, usuario } = useAuth();
