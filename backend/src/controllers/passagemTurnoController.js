@@ -1,4 +1,4 @@
-const PassagemTurno = require('../models/PassagemTurno');
+const PassagemTurno = require('../models/passagemTurno');
 const googleSheetsService = require('../services/googleSheets.service');
 const fs = require('fs');
 const path = require('path');
