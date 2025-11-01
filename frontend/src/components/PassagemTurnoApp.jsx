@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Send, Clock, Package, AlertTriangle, CheckCircle, TrendingUp, MessageSquare, FileText, Trash2, RefreshCw, Camera, X, User, Users } from 'lucide-react'; // ✅ ADICIONADO: User, Users
-
+import { Save, Send, Clock, Package, AlertTriangle, CheckCircle, TrendingUp, MessageSquare, FileText, Trash2, RefreshCw, Camera, X, User, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL 
@@ -28,15 +27,19 @@ export default function PassagemTurnoApp() {
     slaPedidos: 'atendido',
     slaVeiculosLiberados: 'atendido',
     slaVeiculosRecebidos: 'atendido',
+    mediaHoraRealizado: '',
+    produtividadeIndividual: '',
+    metaHoraProjetada: '',
+    metaProdutividade: '',
+    desvioProdutividade: '',
+    slaProdutividade: 'atendido',
     prioridades: '',
     observacoes: '',
     duvidas: ''
   });
 
-  // 📸 Estados para fotos
   const [fotos, setFotos] = useState([]);
   const [fotoPreviews, setFotoPreviews] = useState([]);
-  
   const [historico, setHistorico] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -46,14 +49,11 @@ export default function PassagemTurnoApp() {
   const [editandoId, setEditandoId] = useState(null);
   const [enviandoSeaTalk, setEnviandoSeaTalk] = useState(false);
   const [buscandoDados, setBuscandoDados] = useState(false);
-  
-  // ✅ NOVO: Estado para filtro
-  const [mostrarApenas, setMostrarApenas] = useState('minhas'); // 'minhas' ou 'todas'
+  const [mostrarApenas, setMostrarApenas] = useState('minhas');
 
-  // ✅ ATUALIZADO: useEffect reagindo ao filtro
   useEffect(() => {
     carregarHistorico();
-  }, [mostrarApenas]); // Recarrega quando muda o filtro
+  }, [mostrarApenas]);
 
   useEffect(() => {
     if (usuario?.nome && !editandoId) {
@@ -76,7 +76,6 @@ export default function PassagemTurnoApp() {
     }));
   };
 
-  // 📸 Handler para seleção de fotos
   const handleFotoChange = (e) => {
     const files = Array.from(e.target.files);
     
@@ -101,24 +100,19 @@ export default function PassagemTurnoApp() {
     e.target.value = '';
   };
 
-  // 📸 Remover foto
   const removerFoto = (index) => {
     setFotos(prev => prev.filter((_, i) => i !== index));
     URL.revokeObjectURL(fotoPreviews[index]);
     setFotoPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  // ✅ ATUALIZADO: Carregar histórico com filtro
   const carregarHistorico = async () => {
     setLoading(true);
     try {
-      // Montar URL com filtro
       let url = `${API_URL}?limit=50&page=1`;
       
-      // ✅ Verificar se usuário pode ver todas as passagens
       const podeVerTodas = ['admin', 'supervisor', 'coordenador', 'gerente'].includes(usuario?.cargo);
       
-      // Filtrar se for "minhas" OU se não tiver permissão
       if (mostrarApenas === 'minhas' || !podeVerTodas) {
         url += `&analista=${encodeURIComponent(usuario?.nome || '')}`;
         console.log('🔍 Filtrando passagens de:', usuario?.nome);
@@ -150,22 +144,21 @@ export default function PassagemTurnoApp() {
       mostrarErro('Preencha Data, Turno e Analista');
       return;
     }
-
+    
     setLoading(true);
     try {
       const url = editandoId ? `${API_URL}/${editandoId}` : API_URL;
       const method = editandoId ? 'PUT' : 'POST';
-
       const formData = new FormData();
       
       Object.keys(turnoData).forEach(key => {
         formData.append(key, turnoData[key]);
       });
-
+      
       fotos.forEach((foto) => {
         formData.append('fotos', foto);
       });
-
+      
       const response = await fetch(url, {
         method: method,
         headers: {
@@ -173,9 +166,9 @@ export default function PassagemTurnoApp() {
         },
         body: formData,
       });
-
+      
       const data = await response.json();
-
+      
       if (data.success) {
         mostrarSucesso(data.message || '✅ Passagem salva com sucesso!');
         await carregarHistorico();
@@ -194,16 +187,16 @@ export default function PassagemTurnoApp() {
 
   const excluirPassagem = async (id) => {
     if (!window.confirm('Deseja excluir esta passagem?')) return;
-
+    
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/${id}`, {
         method: 'DELETE',
         headers: getHeaders()
       });
-
+      
       const data = await response.json();
-
+      
       if (data.success) {
         mostrarSucesso('✅ Passagem excluída com sucesso!');
         await carregarHistorico();
@@ -237,6 +230,12 @@ export default function PassagemTurnoApp() {
       slaPedidos: passagem.slaPedidos || 'atendido',
       slaVeiculosLiberados: passagem.slaVeiculosLiberados || 'atendido',
       slaVeiculosRecebidos: passagem.slaVeiculosRecebidos || 'atendido',
+      mediaHoraRealizado: passagem.mediaHoraRealizado || '',
+      produtividadeIndividual: passagem.produtividadeIndividual || '',
+      metaHoraProjetada: passagem.metaHoraProjetada || '',
+      metaProdutividade: passagem.metaProdutividade || '',
+      desvioProdutividade: passagem.desvioProdutividade || '',
+      slaProdutividade: passagem.slaProdutividade || 'atendido',
       prioridades: passagem.prioridades || '',
       observacoes: passagem.observacoes || '',
       duvidas: passagem.duvidas || ''
@@ -260,7 +259,7 @@ export default function PassagemTurnoApp() {
         console.error('Erro ao gerar relatório:', error);
       }
     }
-
+    
     const turnoNome = turnoData.turno === 'manha' ? 'Manhã' : 
                       turnoData.turno === 'tarde' ? 'Tarde' : 
                       'Noite';
@@ -330,7 +329,7 @@ ${turnoData.duvidas}
       mostrarErro('⚠️ Preencha pelo menos o Turno e Analista antes de enviar!');
       return;
     }
-
+    
     setEnviandoSeaTalk(true);
     try {
       if (fotos.length > 0 && !editandoId) {
@@ -400,9 +399,9 @@ ${turnoData.duvidas}
             dadosFormulario: editandoId ? null : turnoData
           })
         });
-
+        
         const data = await response.json();
-
+        
         if (data.success) {
           const fotosMsg = data.data?.fotosEnviadas > 0 
             ? ` com ${data.data.fotosEnviadas} foto(s)` 
@@ -426,7 +425,7 @@ ${turnoData.duvidas}
       mostrarErro('⚠️ Selecione o turno e a data primeiro!');
       return;
     }
-
+    
     setBuscandoDados(true);
     try {
       console.log('🔄 Buscando dados automáticos...');
@@ -437,44 +436,39 @@ ${turnoData.duvidas}
       );
       
       const data = await response.json();
-
+      
       if (data.success) {
-        const pedidosProcessados = parseInt(data.data.pedidosProcessados) || 0;
-        const statusMeta = data.data.slaPedidos || 'nao-atendido';
-        const percentual = data.data.percentualMeta ? `${data.data.percentualMeta}%` : '0%';
-
-        const veiculosLiberados = parseInt(data.data.veiculosLiberados) || 0;
-        const veiculosPercentualSLA = data.data.percentualSLALiberados || 0;
-        const veiculosStatusSLA = data.data.slaVeiculosLiberados || 'atendido';
-        const veiculosPercentualFormatado = `${veiculosPercentualSLA}%`;
-
-        const veiculosRecebidos = parseInt(data.data.veiculosRecebidos) || 0;
-        const recebidosPercentualSLA = data.data.percentualSLARecebidos || 0;
-        const recebidosStatusSLA = data.data.slaVeiculosRecebidos || 'atendido';
-        const recebidosPercentualFormatado = `${recebidosPercentualSLA}%`;
-
-        const absenteismo = data.data.absenteismo || '0%';
-
+        const dadosRecebidos = data.data;
+        
         setTurnoData(prev => ({
           ...prev,
-          pedidosProcessados: pedidosProcessados.toString(),
-          percentualMeta: percentual,
-          slaPedidos: statusMeta,
-          veiculosLiberados: veiculosLiberados.toString(),
-          percentualSLAVeiculos: veiculosPercentualFormatado,
-          slaVeiculosLiberados: veiculosStatusSLA,
-          veiculosRecebidos: veiculosRecebidos.toString(),
-          percentualSLARecebidos: recebidosPercentualFormatado,
-          slaVeiculosRecebidos: recebidosStatusSLA,
-          absenteismo: absenteismo
+          pedidosProcessados: dadosRecebidos.pedidosProcessados?.toString() || '0',
+          percentualMeta: dadosRecebidos.percentualMeta ? `${dadosRecebidos.percentualMeta}%` : '0%',
+          slaPedidos: dadosRecebidos.slaPedidos || 'nao-atendido',
+          
+          veiculosLiberados: dadosRecebidos.veiculosLiberados?.toString() || '0',
+          percentualSLAVeiculos: `${dadosRecebidos.percentualSLALiberados || 0}%`,
+          slaVeiculosLiberados: dadosRecebidos.slaVeiculosLiberados || 'atendido',
+          
+          veiculosRecebidos: dadosRecebidos.veiculosRecebidos?.toString() || '0',
+          percentualSLARecebidos: `${dadosRecebidos.percentualSLARecebidos || 0}%`,
+          slaVeiculosRecebidos: dadosRecebidos.slaVeiculosRecebidos || 'atendido',
+          
+          absenteismo: dadosRecebidos.absenteismo || '0%',
+          
+          mediaHoraRealizado: dadosRecebidos.mediaHoraRealizado?.toString() || '0',
+          produtividadeIndividual: dadosRecebidos.produtividadeIndividual?.toString() || '0',
+          metaHoraProjetada: dadosRecebidos.metaHoraProjetada?.toString() || '0',
+          metaProdutividade: dadosRecebidos.metaProdutividade?.toString() || '0',
+          desvioProdutividade: dadosRecebidos.desvioProdutividade?.toString() || '0',
+          slaProdutividade: dadosRecebidos.slaProdutividade || 'atendido'
         }));
-
-        const metaBateu = statusMeta === 'atendido';
-        const veiculosSLAOk = veiculosStatusSLA === 'atendido';
-        const recebidosSLAOk = recebidosStatusSLA === 'atendido';
+        
+        const metaBateu = dadosRecebidos.slaPedidos === 'atendido';
+        const produtividadeOK = dadosRecebidos.slaProdutividade === 'atendido';
         
         mostrarSucesso(
-          `✅ Dados atualizados!\n${metaBateu ? '✅' : '❌'} Meta: ${percentual}${metaBateu ? ' - Meta Batida!' : ' - Meta Não Batida'}\n🚚 Veículos Liberados: ${veiculosLiberados} | SLA: ${veiculosPercentualFormatado} ${veiculosSLAOk ? '✅' : '❌'}\n📦 Veículos Recebidos: ${veiculosRecebidos} | SLA: ${recebidosPercentualFormatado} ${recebidosSLAOk ? '✅' : '❌'}\n👥 Absenteísmo: ${absenteismo}`
+          `✅ Dados atualizados!\n📦 Meta Pedidos: ${metaBateu ? '✅ Batida' : '❌ Não Batida'}\n📈 Produtividade: ${produtividadeOK ? '✅ Meta Atingida' : '❌ Abaixo da Meta'} (${dadosRecebidos.desvioProdutividade > 0 ? '+' : ''}${dadosRecebidos.desvioProdutividade}%)`
         );
       } else {
         throw new Error(data.message || 'Erro ao buscar dados');
@@ -506,6 +500,12 @@ ${turnoData.duvidas}
       slaPedidos: 'atendido',
       slaVeiculosLiberados: 'atendido',
       slaVeiculosRecebidos: 'atendido',
+      mediaHoraRealizado: '',
+      produtividadeIndividual: '',
+      metaHoraProjetada: '',
+      metaProdutividade: '',
+      desvioProdutividade: '',
+      slaProdutividade: 'atendido',
       prioridades: '',
       observacoes: '',
       duvidas: ''
@@ -529,7 +529,7 @@ ${turnoData.duvidas}
     setTimeout(() => setShowError(false), 3000);
   };
 
-    const obterLabelCargo = () => {
+  const obterLabelCargo = () => {
     const cargoLabels = {
       'LOG II': 'LOG II',
       'lider': 'Líder',
@@ -539,12 +539,11 @@ ${turnoData.duvidas}
     
     return cargoLabels[usuario?.cargo] || 'Responsável';
   };
-  // ✅ NOVO: Verificar permissões
+
   const podeVerTodas = ['admin', 'supervisor', 'coordenador', 'gerente'].includes(usuario?.cargo);
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Cabeçalho */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-8 mb-6 text-white">
         <div className="flex items-center justify-between">
           <div>
@@ -561,7 +560,6 @@ ${turnoData.duvidas}
         </div>
       </div>
 
-      {/* Notificações */}
       {showSuccess && (
         <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-2xl z-50 animate-bounce">
           <p className="font-bold flex items-center gap-2">
@@ -580,7 +578,6 @@ ${turnoData.duvidas}
         </div>
       )}
 
-      {/* Tabs */}
       <div className="flex gap-4 mb-6">
         <button
           onClick={() => setActiveTab('formulario')}
@@ -606,15 +603,14 @@ ${turnoData.duvidas}
         </button>
       </div>
 
-      {/* Formulário - TODO O SEU CÓDIGO PERMANECE IGUAL */}
       {activeTab === 'formulario' && (
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
             <FileText size={28} className="text-blue-600" />
             {editandoId ? '✏️ Editando Passagem' : '📝 Nova Passagem de Turno'}
           </h2>
+          
           <div className="space-y-6">
-            {/* Data e Turno */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
@@ -648,7 +644,6 @@ ${turnoData.duvidas}
               </div>
             </div>
 
-           {/* Analista com Label Dinâmico */}
             <div>
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
                 <CheckCircle size={20} className="text-green-600" />
@@ -664,12 +659,11 @@ ${turnoData.duvidas}
               />
             </div>
 
-            {/* Buscar Dados Automáticos */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-blue-800 mb-1">🔄 Buscar Dados Automáticos</h3>
-                  <p className="text-sm text-blue-600">Preenche automaticamente os dados da planilha (Pedidos, Veículos e Absenteísmo)</p>
+                  <p className="text-sm text-blue-600">Preenche automaticamente os dados da planilha (Pedidos, Veículos, Absenteísmo e Produtividade)</p>
                 </div>
                 <button
                   onClick={buscarDadosAutomaticos}
@@ -695,7 +689,6 @@ ${turnoData.duvidas}
               </div>
             </div>
 
-            {/* Indicadores */}
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
               <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-4">
                 <TrendingUp size={24} className="text-blue-600" />
@@ -833,10 +826,88 @@ ${turnoData.duvidas}
                     ℹ️ Preenchido automaticamente (Operation Overview - AI36)
                   </p>
                 </div>
+
+                {/* ✅ PRODUTIVIDADE */}
+                <div className="bg-white rounded-lg p-4 border border-purple-200 md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-600 mb-2">
+                    📈 Produtividade Individual
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <input
+                        type="number"
+                        name="produtividadeIndividual"
+                        value={turnoData.produtividadeIndividual}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                        disabled
+                        className="w-full px-3 py-2 border border-purple-300 rounded-lg text-center font-semibold bg-gray-50 cursor-not-allowed"
+                      />
+                      <p className="text-xs text-gray-500 mt-1 text-center">Realizado</p>
+                    </div>
+                    <div>
+                      <input
+                        type="number"
+                        name="metaProdutividade"
+                        value={turnoData.metaProdutividade}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                        disabled
+                        className="w-full px-3 py-2 border border-purple-300 rounded-lg text-center font-semibold bg-gray-50 cursor-not-allowed"
+                      />
+                      <p className="text-xs text-gray-500 mt-1 text-center">Meta</p>
+                    </div>
+                  </div>
+                  
+                  <select
+                    name="slaProdutividade"
+                    value={turnoData.slaProdutividade}
+                    onChange={handleInputChange}
+                    disabled
+                    className={`w-full px-3 py-2 border rounded-lg mt-2 text-sm font-semibold cursor-not-allowed ${
+                      turnoData.slaProdutividade === 'atendido' 
+                        ? 'border-green-400 bg-green-50 text-green-700' 
+                        : 'border-red-400 bg-red-50 text-red-700'
+                    }`}
+                  >
+                    <option value="atendido">✓ Meta Atingida</option>
+                    <option value="nao-atendido">✗ Abaixo da Meta</option>
+                  </select>
+                  
+                  {turnoData.desvioProdutividade && parseFloat(turnoData.desvioProdutividade) !== 0 && (
+                    <div className={`mt-2 text-center py-2 rounded-lg font-bold text-lg ${
+                      parseFloat(turnoData.desvioProdutividade) >= 0
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {parseFloat(turnoData.desvioProdutividade) >= 0 ? '📈' : '📉'} 
+                      {parseFloat(turnoData.desvioProdutividade) > 0 ? '+' : ''}
+                      {turnoData.desvioProdutividade}% (Desvio)
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div className="text-center py-2 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-gray-600">📦 Média Hora (Equipe)</p>
+                      <p className="text-lg font-bold text-blue-600">
+                        {turnoData.mediaHoraRealizado || 0}
+                      </p>
+                    </div>
+                    <div className="text-center py-2 bg-purple-50 rounded-lg">
+                      <p className="text-xs text-gray-600">🎯 Meta Hora Projetada</p>
+                      <p className="text-lg font-bold text-purple-600">
+                        {turnoData.metaHoraProjetada || 0}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    ℹ️ Preenchido automaticamente (Operation Overview)
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Campos de Texto */}
             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
               <label className="flex items-center gap-2 text-sm font-semibold text-red-700 mb-2">
                 <AlertTriangle size={20} className="text-red-600" />
@@ -897,7 +968,6 @@ ${turnoData.duvidas}
               />
             </div>
 
-            {/* 📸 Seção de Upload de Fotos */}
             <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
               <label className="flex items-center gap-2 text-sm font-semibold text-purple-700 mb-2">
                 <Camera size={20} className="text-purple-600" />
@@ -925,7 +995,6 @@ ${turnoData.duvidas}
                 </p>
               </div>
 
-              {/* Preview das Fotos */}
               {fotoPreviews.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {fotoPreviews.map((preview, index) => (
@@ -1000,7 +1069,6 @@ ${turnoData.duvidas}
               />
             </div>
 
-            {/* Botões de Ação */}
             <div className="flex flex-wrap gap-3 pt-4 border-t">
               <button
                 onClick={salvarPassagem}
@@ -1052,10 +1120,8 @@ ${turnoData.duvidas}
         </div>
       )}
 
-      {/* ✅ ATUALIZADO: Histórico com Filtro */}
       {activeTab === 'historico' && (
         <div className="space-y-4">
-          {/* ✅ NOVO: Header com Toggle */}
           <div className="bg-white rounded-xl shadow-lg p-4 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
               <Package size={24} className="text-blue-600" />
@@ -1075,7 +1141,6 @@ ${turnoData.duvidas}
                 Minhas Passagens
               </button>
               
-              {/* ✅ Botão "Todas" apenas se tiver permissão */}
               {podeVerTodas && (
                 <button
                   onClick={() => setMostrarApenas('todas')}
@@ -1092,7 +1157,6 @@ ${turnoData.duvidas}
             </div>
           </div>
 
-          {/* Lista de Passagens */}
           {historico.length === 0 ? (
             <div className="bg-white rounded-lg shadow-lg p-12 text-center">
               <Package size={64} className="mx-auto text-gray-300 mb-4" />
@@ -1147,8 +1211,7 @@ ${turnoData.duvidas}
                     </div>
                   </div>
                   
-                  {/* Indicadores */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center bg-blue-50 rounded-lg p-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center bg-blue-50 rounded-lg p-4">
                     <div>
                       <p className="text-xs text-gray-600">Pedidos Processados</p>
                       <p className="text-lg font-bold text-blue-600">{passagem.pedidosProcessados || 0}</p>
@@ -1161,6 +1224,7 @@ ${turnoData.duvidas}
                         </p>
                       )}
                     </div>
+
                     <div>
                       <p className="text-xs text-gray-600">Veículos Liberados</p>
                       <p className="text-lg font-bold text-blue-600">{passagem.veiculosLiberados || 0}</p>
@@ -1173,6 +1237,7 @@ ${turnoData.duvidas}
                         </p>
                       )}
                     </div>
+
                     <div>
                       <p className="text-xs text-gray-600">Veículos Recebidos</p>
                       <p className="text-lg font-bold text-blue-600">{passagem.veiculosRecebidos || 0}</p>
@@ -1185,13 +1250,29 @@ ${turnoData.duvidas}
                         </p>
                       )}
                     </div>
+
                     <div>
                       <p className="text-xs text-gray-600">Absenteísmo</p>
                       <p className="text-lg font-bold text-orange-600">{passagem.absenteismo || '0%'}</p>
                     </div>
+
+                    {/* ✅ PRODUTIVIDADE NO HISTÓRICO */}
+                    <div>
+                      <p className="text-xs text-gray-600">Produtividade</p>
+                      <p className="text-lg font-bold text-purple-600">
+                        {passagem.produtividadeIndividual || 0}
+                      </p>
+                      <p className={`text-xs font-semibold mt-1 ${passagem.slaProdutividade === 'atendido' ? 'text-green-600' : 'text-red-600'}`}>
+                        {passagem.slaProdutividade === 'atendido' ? '✓ Meta OK' : '✗ Abaixo'}
+                      </p>
+                      {passagem.desvioProdutividade !== undefined && passagem.desvioProdutividade !== 0 && (
+                        <p className={`text-xs font-bold mt-1 ${parseFloat(passagem.desvioProdutividade) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {parseFloat(passagem.desvioProdutividade) > 0 ? '+' : ''}{passagem.desvioProdutividade}%
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Fotos no Histórico */}
                   {passagem.fotos && passagem.fotos.length > 0 && (
                     <div className="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-3">
                       <p className="text-xs font-semibold text-purple-700 mb-2 flex items-center gap-1">
@@ -1202,13 +1283,13 @@ ${turnoData.duvidas}
                         {passagem.fotos.map((foto, index) => (
                           <a
                             key={index}
-                            href={`http://localhost:5000${foto.url}`}
+                            href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${foto.url}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="block relative group"
                           >
                             <img
-                              src={`http://localhost:5000${foto.url}`}
+                              src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${foto.url}`}
                               alt={foto.originalName}
                               className="w-full h-20 object-cover rounded border border-purple-200 hover:border-purple-400 transition"
                             />
@@ -1221,19 +1302,20 @@ ${turnoData.duvidas}
                     </div>
                   )}
 
-                  {/* Alertas, Pendências, etc. */}
                   {passagem.alertasCriticos && (
                     <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
                       <p className="text-xs font-semibold text-red-700 mb-1">🔴 Alertas Críticos:</p>
                       <p className="text-sm text-gray-700 whitespace-pre-wrap">{passagem.alertasCriticos}</p>
                     </div>
-                  )},
+                  )}
+
                   {passagem.pendencias && (
                     <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
                       <p className="text-xs font-semibold text-orange-700 mb-1">⏳ Pendências:</p>
                       <p className="text-sm text-gray-700 whitespace-pre-wrap">{passagem.pendencias}</p>
                     </div>
-                  )},
+                  )}
+
                   {passagem.tarefasConcluidas && (
                     <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
                       <p className="text-xs font-semibold text-green-700 mb-1">✅ Tarefas Concluídas:</p>
