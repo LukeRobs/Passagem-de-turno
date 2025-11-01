@@ -114,7 +114,31 @@ const passagemTurnoSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-
+      mediaHoraRealizado: {
+    type: Number,
+    default: 0
+  },
+  produtividadeIndividual: {
+    type: Number,
+    default: 0
+  },
+  metaHoraProjetada: {
+    type: Number,
+    default: 0
+  },
+  metaProdutividade: {
+    type: Number,
+    default: 0
+  },
+  desvioProdutividade: {
+    type: Number,
+    default: 0
+  },
+  slaProdutividade: {
+    type: String,
+    enum: ['atendido', 'nao-atendido'],
+    default: 'atendido'
+  }, 
     // FOTOS ANEXADAS
     fotos: [{
       filename: {

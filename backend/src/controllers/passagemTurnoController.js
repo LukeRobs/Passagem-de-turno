@@ -7,7 +7,6 @@ const axios = require('axios');
 // 🚀 WEBHOOK DO SEATALK
 const SEATALK_WEBHOOK = 'https://openapi.seatalk.io/webhook/group/TgHMlaM9R7iwEqBZNUTTxA';
 
-
 const gerarRelatorioFormatado = (passagem) => {
   let dataFormatada = '';
   
@@ -23,11 +22,11 @@ const gerarRelatorioFormatado = (passagem) => {
       dataFormatada = dateStr.split('-').reverse().join('/');
     }
   }
-
+  
   const turnoNome = passagem.turno === 'manha' ? 'Manhã' :
                     passagem.turno === 'tarde' ? 'Tarde' :
                     'Noite';
-
+  
   const formatarLista = (texto, emoji) => {
     if (!texto) return '';
     return texto
@@ -36,7 +35,7 @@ const gerarRelatorioFormatado = (passagem) => {
       .map(l => `${emoji} ${l.trim()}`)
       .join('\n');
   };
-
+  
   const formatarIndicador = (label, valor, sla, tipo = 'meta') => {
     let emoji = '';
     let statusTexto = '';
@@ -51,7 +50,7 @@ const gerarRelatorioFormatado = (passagem) => {
     
     return `${emoji} ${label}: ${valor} | ${statusTexto}`;
   };
-
+  
   let relatorio = '';
   
   relatorio += `╔═══════════════════════════════════════════════════╗\n`;
@@ -61,35 +60,35 @@ const gerarRelatorioFormatado = (passagem) => {
   relatorio += `📅 Data: ${dataFormatada}\n`;
   relatorio += `⏰ Turno: ${turnoNome}\n`;
   relatorio += `👤 Analista: ${passagem.analista}\n\n`;
-
+  
   if (passagem.alertasCriticos) {
     relatorio += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
     relatorio += `┃  🚨 ALERTAS CRÍTICOS - ATENÇÃO IMEDIATA!        ┃\n`;
     relatorio += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n`;
     relatorio += `${formatarLista(passagem.alertasCriticos, '🔴')}\n\n`;
   }
-
+  
   if (passagem.pendencias) {
     relatorio += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
     relatorio += `┃  ⏳ PENDÊNCIAS DO TURNO (NÃO RESOLVIDAS)        ┃\n`;
     relatorio += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n`;
     relatorio += `${formatarLista(passagem.pendencias, '⏳')}\n\n`;
   }
-
+  
   if (passagem.tarefasConcluidas) {
     relatorio += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
     relatorio += `┃  ✅ TAREFAS CONCLUÍDAS NO TURNO                  ┃\n`;
     relatorio += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n`;
     relatorio += `${formatarLista(passagem.tarefasConcluidas, '✅')}\n\n`;
   }
-
+  
   if (passagem.problemas) {
     relatorio += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
     relatorio += `┃  ⚠️ PROBLEMAS/INCIDENTES DO TURNO                ┃\n`;
     relatorio += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n`;
     relatorio += `${formatarLista(passagem.problemas, '⚠️')}\n\n`;
   }
-
+  
   relatorio += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
   relatorio += `┃  📊 INDICADORES DO TURNO                         ┃\n`;
   relatorio += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n`;
@@ -106,30 +105,52 @@ const gerarRelatorioFormatado = (passagem) => {
   if (passagem.percentualSLARecebidos) relatorio += ` (SLA: ${passagem.percentualSLARecebidos})`;
   relatorio += '\n';
   
-  relatorio += `👥 Absenteísmo: ${passagem.absenteismo || '0%'}\n\n`;
-
+  relatorio += `👥 Absenteísmo: ${passagem.absenteismo || '0%'}\n`;
+  
+  // ✅ ADICIONAR PRODUTIVIDADE
+  if (passagem.produtividadeIndividual) {
+    relatorio += '\n';
+    relatorio += formatarIndicador('📈 Produtividade Individual', passagem.produtividadeIndividual || 'N/A', passagem.slaProdutividade, 'meta');
+    relatorio += ` (Meta: ${passagem.metaProdutividade || 'N/A'})`;
+    relatorio += '\n';
+    
+    relatorio += `📦 Média Hora Realizado: ${passagem.mediaHoraRealizado || 0} pacotes (Meta: ${passagem.metaHoraProjetada || 0})\n`;
+    
+// ✅ DEPOIS (corrigido)
+  if (passagem.desvioProdutividade !== undefined) {
+    const desvioNumerico = parseFloat(passagem.desvioProdutividade || 0);
+    const desvioFormatado = desvioNumerico > 0 
+      ? `+${desvioNumerico.toFixed(2)}%` 
+      : `${desvioNumerico.toFixed(2)}%`;
+    const emojiDesvio = desvioNumerico >= 0 ? '📈' : '📉';
+    relatorio += `${emojiDesvio} Desvio de Produtividade: ${desvioFormatado}\n`;
+  }
+  }
+  
+  relatorio += '\n';
+  
   if (passagem.prioridades) {
     relatorio += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
     relatorio += `┃  🎯 PRIORIDADES PARA PRÓXIMO TURNO               ┃\n`;
     relatorio += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n`;
     relatorio += `${formatarLista(passagem.prioridades, '🎯')}\n\n`;
   }
-
+  
   if (passagem.observacoes) {
     relatorio += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
     relatorio += `┃  💡 OBSERVAÇÕES GERAIS                           ┃\n`;
     relatorio += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n`;
     relatorio += `${formatarLista(passagem.observacoes, '💡')}\n\n`;
   }
-
+  
   if (passagem.duvidas) {
     relatorio += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
     relatorio += `┃  ❓ DÚVIDAS PARA PRÓXIMO ANALISTA                ┃\n`;
     relatorio += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n`;
     relatorio += `${formatarLista(passagem.duvidas, '❓')}\n\n`;
   }
-
-  // ✅ NOVO: Adicionar links das fotos no relatório
+  
+  // Adicionar links das fotos no relatório
   if (passagem.fotos && passagem.fotos.length > 0) {
     relatorio += `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
     relatorio += `┃  📎 EVIDÊNCIAS FOTOGRÁFICAS (${passagem.fotos.length})                 ┃\n`;
@@ -143,12 +164,12 @@ const gerarRelatorioFormatado = (passagem) => {
       relatorio += `🔗 Evidência: ${fotoURL}\n\n`;
     });
   }
-
+  
   relatorio += `╔═══════════════════════════════════════════════════╗\n`;
   relatorio += `║  ✓ Relatório gerado em ${new Date().toLocaleString('pt-BR').padEnd(24)} ║\n`;
   relatorio += `║  📤 Sistema de Passagem de Turno v2.0             ║\n`;
   relatorio += `╚═══════════════════════════════════════════════════╝`;
-
+  
   return relatorio;
 };
 
@@ -158,7 +179,7 @@ const criarPassagem = async (req, res) => {
     console.log('📦 Campos recebidos:', Object.keys(req.body).join(', '));
     console.log('📸 Fotos processadas:', req.fotosProcessadas?.length || 0);
     
-    // ✅ Adicionar fotos processadas ao body
+    // Adicionar fotos processadas ao body
     if (req.fotosProcessadas && req.fotosProcessadas.length > 0) {
       req.body.fotos = req.fotosProcessadas.map(foto => ({
         filename: foto.filename,
@@ -206,7 +227,6 @@ const criarPassagem = async (req, res) => {
   }
 };
 
-
 const enviarParaSeaTalk = async (req, res) => {
   try {
     console.log('\n╔═══════════════════════════════════════════════════╗');
@@ -217,7 +237,7 @@ const enviarParaSeaTalk = async (req, res) => {
     
     let passagemCompleta, relatorio;
     
-    // 1️ Buscar passagem
+    // Buscar passagem
     if (passagemId) {
       console.log('🔍 Buscando passagem ID:', passagemId);
       passagemCompleta = await PassagemTurno.findById(passagemId);
@@ -250,7 +270,7 @@ const enviarParaSeaTalk = async (req, res) => {
       });
     }
     
-    // 2️ ENVIAR TUDO EM UMA ÚNICA MENSAGEM (texto + links)
+    // ENVIAR RELATÓRIO
     console.log('┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓');
     console.log('┃  📨 ENVIANDO RELATÓRIO COMPLETO                   ┃');
     console.log('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n');
@@ -348,6 +368,23 @@ const buscarDadosAutomaticos = async (req, res) => {
       resultadoAbsenteismo = { data: { absenteismoFormatado: '0%' } };
     }
     
+    // ✅ Buscar produtividade
+    let resultadoProdutividade;
+    try {
+      resultadoProdutividade = await googleSheetsService.buscarProdutividade();
+      console.log('📊 Produtividade:', resultadoProdutividade.produtividadeIndividual || 0);
+    } catch (err) {
+      console.error('⚠️ Erro ao buscar produtividade:', err.message);
+      resultadoProdutividade = {
+        mediaHoraRealizado: 0,
+        produtividadeIndividual: 0,
+        metaHoraProjetada: 0,
+        metaProdutividade: 0,
+        desvioProdutividade: 0,
+        metaProdutividadeBatida: false
+      };
+    }
+    
     const dadosAutomaticos = {
       pedidosProcessados: dados.pedidosProcessados || 0,
       slaPedidos: dados.metaBatida ? 'atendido' : 'nao-atendido',
@@ -360,6 +397,14 @@ const buscarDadosAutomaticos = async (req, res) => {
       slaVeiculosRecebidos: dados.recebidosStatusSLA || 'nao-atendido',
       percentualSLARecebidos: dados.recebidosPercentualSLA || 0,
       absenteismo: resultadoAbsenteismo.data?.absenteismoFormatado || '0%',
+      
+      // ✅ ADICIONAR PRODUTIVIDADE
+      mediaHoraRealizado: resultadoProdutividade.mediaHoraRealizado,
+      produtividadeIndividual: resultadoProdutividade.produtividadeIndividual,
+      metaHoraProjetada: resultadoProdutividade.metaHoraProjetada,
+      metaProdutividade: resultadoProdutividade.metaProdutividade,
+      desvioProdutividade: resultadoProdutividade.desvioProdutividade,
+      slaProdutividade: resultadoProdutividade.metaProdutividadeBatida ? 'atendido' : 'nao-atendido'
     };
     
     console.log('✅ Dados preparados com sucesso\n');
@@ -380,7 +425,6 @@ const buscarDadosAutomaticos = async (req, res) => {
   }
 };
 
-
 const listarPassagens = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -388,12 +432,12 @@ const listarPassagens = async (req, res) => {
     const skip = (page - 1) * limit;
     
     const { analista } = req.query;
-
     const filtro = {};
-    if(analista) {
+    if (analista) {
       filtro.analista = analista;
-      console.log(`🔍 Filtrando passagens do analista: ${analista}`)
+      console.log(`🔍 Filtrando passagens do analista: ${analista}`);
     }
+    
     const passagens = await PassagemTurno.find(filtro)
       .sort({ createdAt: -1 })
       .skip(skip)

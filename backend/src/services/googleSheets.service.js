@@ -611,6 +611,81 @@ const buscarVeiculosRecebidos = async (turno, data) => {
     throw new Error(`Erro ao buscar veículos recebidos na aba ${RECEBIDOS_SHEET}: ${error.message}`);
   }
 };
+const buscarProdutividade = async () => {
+  try {
+    console.log('\n📊 ===== BUSCANDO PRODUTIVIDADE =====');
+    
+    // ✅ ADICIONAR ESTA LINHA (estava faltando!)
+    const sheets = getGoogleSheetsClient();
+    
+    const RANGE = 'Operation Overview!D42:D43'; // Média Hora e Produtividade Individual
+    const RANGE_METAS = 'Operation Overview!H37:J37'; // Metas
+    
+    // Buscar valores realizados
+    const responseRealizado = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: RANGE,
+    });
+    
+    // Buscar metas
+    const responseMetas = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: RANGE_METAS,
+    });
+    
+    const valoresRealizados = responseRealizado.data.values;
+    const valoresMetas = responseMetas.data.values;
+    
+    if (!valoresRealizados || valoresRealizados.length === 0) {
+      console.warn('⚠️ Nenhum valor de produtividade encontrado');
+      return {
+        mediaHoraRealizado: 0,
+        produtividadeIndividual: 0,
+        metaHoraProjetada: 0,
+        metaProdutividade: 0,
+        desvioProdutividade: 0,
+        metaProdutividadeBatida: false
+      };
+    }
+    
+    // Extrair valores
+    const mediaHoraRealizado = parseFloat(valoresRealizados[0]?.[0]?.toString().replace(/[^\d.-]/g, '') || 0);
+    const produtividadeIndividual = parseFloat(valoresRealizados[1]?.[0]?.toString().replace(/[^\d.-]/g, '') || 0);
+    
+    const metaHoraProjetada = parseFloat(valoresMetas[0]?.[0]?.toString().replace(/[^\d.-]/g, '') || 0);
+    const metaProdutividade = parseFloat(valoresMetas[0]?.[2]?.toString().replace(/[^\d.-]/g, '') || 0);
+    
+    // Calcular desvio (%)
+    let desvioProdutividade = 0;
+    let metaProdutividadeBatida = false;
+    
+    if (metaProdutividade > 0) {
+      desvioProdutividade = ((produtividadeIndividual - metaProdutividade) / metaProdutividade) * 100;
+      metaProdutividadeBatida = produtividadeIndividual >= metaProdutividade;
+    }
+    
+    console.log('📊 Média Hora Realizado:', mediaHoraRealizado);
+    console.log('👤 Produtividade Individual:', produtividadeIndividual);
+    console.log('🎯 Meta Hora Projetada:', metaHoraProjetada);
+    console.log('🎯 Meta Produtividade:', metaProdutividade);
+    console.log('📈 Desvio:', desvioProdutividade.toFixed(2) + '%');
+    console.log('✅ Meta Batida:', metaProdutividadeBatida ? 'SIM' : 'NÃO');
+    console.log('');
+    
+  return {
+    mediaHoraRealizado: parseFloat(mediaHoraRealizado.toFixed(3)),  // ✅ 12.77
+    produtividadeIndividual: Math.round(produtividadeIndividual),     // 629
+    metaHoraProjetada: parseFloat(metaHoraProjetada.toFixed(3)),     // ✅ 16.34
+    metaProdutividade: Math.round(metaProdutividade),                 // 835
+    desvioProdutividade: parseFloat(desvioProdutividade.toFixed(2)),
+    metaProdutividadeBatida
+  };
+    
+  } catch (error) {
+    console.error('❌ Erro ao buscar produtividade:', error.message);
+    throw error;
+  }
+};
 async function buscarAbsenteismo() {
   try {
     // ❌ REMOVER ESTA LINHA:
@@ -693,5 +768,6 @@ module.exports = {
   buscarDadosMetricas,
   buscarVeiculosLiberados,
   buscarVeiculosRecebidos,
-  buscarAbsenteismo
+  buscarAbsenteismo,
+  buscarProdutividade
 };
