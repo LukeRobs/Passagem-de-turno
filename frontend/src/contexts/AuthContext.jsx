@@ -2,6 +2,11 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext();
 
+// ✅ Configurar API_URL com variável de ambiente
+const API_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api/auth`
+  : 'http://localhost:5000/api/auth';
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -32,7 +37,7 @@ export const AuthProvider = ({ children }) => {
   // Verificar se token ainda é válido
   const verificarToken = async (tokenParaVerificar) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/me', {
+      const response = await fetch(`${API_URL}/me`, {
         headers: {
           'Authorization': `Bearer ${tokenParaVerificar}`
         }
@@ -56,7 +61,7 @@ export const AuthProvider = ({ children }) => {
   // Login
   const login = async (email, senha) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -84,7 +89,7 @@ export const AuthProvider = ({ children }) => {
   // Registro
   const registrar = async (nome, email, senha, cargo = 'analista') => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/registrar', {
+      const response = await fetch(`${API_URL}/registrar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
