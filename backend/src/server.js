@@ -12,7 +12,11 @@ const app = express();
 
 // CORS - Permitir requisições do frontend
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    'https://passagem-de-turno-kappa.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
   credentials: true
 }));
 
